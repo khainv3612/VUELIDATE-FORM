@@ -1,35 +1,54 @@
 <template>
   <div id="app">
-
     <div class="main">
-
       <section class="signup">
-        <!-- <img src="images/signup-bg.jpg" alt=""> -->
         <div class="container">
           <div class="signup-content">
-            <form method="POST" id="signup-form" class="signup-form">
+            <form @submit.prevent="handleSubmit" id="signup-form" class="signup-form">
               <h2 class="form-title">Create account</h2>
               <div class="form-group">
-                <input type="text" class="form-input" name="name" id="name" placeholder="Your Name"/>
+                <input type="text" class="form-input" v-model.trim="$v.name.$model" id="name"
+                       placeholder="Your Name"/>
+                <div class="error" v-if="submitted && !$v.name.required">Name is required</div>
+                <div
+                    class="error"
+                    v-if="submitted && !$v.name.minLength"
+                >Name must have at least {{ $v.name.$params.minLength.min }} letters.
+                </div>
+                <div
+                    class="error"
+                    v-if="submitted && !$v.name.maxLength"
+                >Name must have at most {{ $v.name.$params.maxLength.max }} letters.
+                </div>
               </div>
               <div class="form-group">
-                <input type="email" class="form-input" name="email" id="email" placeholder="Your Email"/>
+                <input type="email" class="form-input" name="email" id="email" placeholder="Your Email"
+                       v-model.trim="email"/>
+                <div class="error" v-if="submitted && !$v.email.required">Email is required</div>
+                <div class="error" v-if="!$v.email.email">Email must be valid</div>
               </div>
               <div class="form-group">
-                <input type="text" class="form-input" name="password" id="password" placeholder="Password"/>
+                <input type="text" class="form-input" name="password" id="password" placeholder="Password"
+                       v-model="password"/>
                 <span toggle="#password" class="zmdi zmdi-eye field-icon toggle-password"></span>
+                <div class="error" v-if="submitted && !$v.password.valid">Password between 8 to 15 characters, at least
+                  one lowercase letter, one uppercase letter, one numeric digit, and one special character
+                </div>
               </div>
               <div class="form-group">
-                <input type="password" class="form-input" name="re_password" id="re_password"
+                <input type="password" class="form-input" name="re_password" id="re_password" v-model="repass"
                        placeholder="Repeat your password"/>
+                <div class="error" v-if="submitted && !$v.repass.sameAsPassword">Pass not match</div>
               </div>
               <div class="form-group">
-                <input type="checkbox" name="agree-term" id="agree-term" class="agree-term"/>
+                <input type="checkbox" name="agree-term" id="agree-term" class="agree-term" v-model="isAgree"/>
                 <label for="agree-term" class="label-agree-term"><span><span></span></span>I agree all statements in <a
                     href="#" class="term-service">Terms of service</a></label>
+                <div class="error" v-if="submitted && !isAgree">Please accept term</div>
               </div>
               <div class="form-group">
                 <input type="submit" name="submit" id="submit" class="form-submit" value="Sign up"/>
+
               </div>
             </form>
             <p class="loginhere">
@@ -46,11 +65,54 @@
 
 <script>
 import $ from 'jquery';
+import {validationMixin} from "vuelidate";
+import {required, email, minLength, maxLength, sameAs} from "vuelidate/lib/validators";
+
 
 export default {
   name: 'App',
   components: {},
-  methods: {},
+  data() {
+    return {
+      name: "",
+      email: "",
+      password: "",
+      repass: "",
+      isAgree: false,
+      submitted: false
+    }
+  },
+  mixins: [validationMixin],
+  validations: {
+    name: {
+      required,
+      minLength: minLength(6),
+      maxLength: maxLength(20),
+    },
+    email: {
+      required,
+      email
+    },
+    password: {
+      required,
+      valid: function (value) {
+        return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,15}$/.test(value);
+      }
+    },
+    repass: {required, sameAsPassword: sameAs('password')}
+  },
+  methods: {
+    handleSubmit() {
+      this.submitted = true;
+      if (!this.isAgree)
+        return;
+      this.$v.$touch();
+      if (this.$v.$invalid) {
+        // alert("Please complete all field correctly");
+        return
+      }
+    }
+  },
   mounted() {
     $(".toggle-password").click(function () {
 
@@ -87,5 +149,10 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+.error {
+  color: red;
+  text-align: left;
 }
 </style>
